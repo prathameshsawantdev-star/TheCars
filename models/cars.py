@@ -1,34 +1,32 @@
 from typing import Optional, Annotated, List 
 from pydantic import BaseModel, Field, ConfigDict, BeforeValidator, field_validator
+from beanie import Document, Link, PydanticObjectId
+from datetime import datetime
+from models.users import User  
 
-PyObjectId = Annotated[str, BeforeValidator(str)]
+class Car(Document):
+    brand: str 
+    make: str | int
+    year: int 
+    cm3: int 
+    km: int 
+    price: int 
+    picture_url: Optional[str] = None 
+    description: Optional[str] = None 
+    pros: List[str] = []
+    cons: List[str] = []
+    date: datetime = datetime.now() 
+    user: Optional[Link[User]] = None 
 
-class Car(BaseModel):
-    id: Optional[PyObjectId] = Field(alias="_id", default=None)
-    brand: str = Field(...)
-    make: str | int = Field(...)
-    year: int = Field(..., gt=1900, lt=2030)
-    cm3: int = Field(..., gt=0, lt=10_000)
-    km: int = Field(..., gt=0, lt=2_000_000)
-    price: int = Field(..., gt=0, lt=1_000_000)
-    picture_url: Optional[str] = Field(None)
-    user_id: str = Field(...)
-    
-    @field_validator('brand')
-    @classmethod 
-    def validate_brand(cls, value: str) -> str:
-        return value.title()
-    
-    @field_validator("make")
+    @field_validator("make", mode="before")
     @classmethod
-    def validate_make(cls, value: str | int) -> str:
-        if isinstance(value, int):
-            return str(value)
-        return value.title()
-    
-    model_config = ConfigDict(
-        populate_by_name=True,
-        arbitrary_types_allowed=True,
+    def convert_make_to_str(cls, value):
+        return str(value)
+
+    class Settings:
+        name="cars"
+   
+    class Config:
         json_schema_extra={
             "example":{
                 "brand": "Audi",
@@ -39,15 +37,13 @@ class Car(BaseModel):
                 "price": 100000
             }
         }
-    )
+
 
 class updateCar(BaseModel):
-    brand: Optional[str] = Field(None)
-    make: Optional[str] = Field(None)
-    year: Optional[int] = Field(None, gt=1970, lt=2025)
-    cm3: Optional[int] = Field(None, gt=0, lt=5000)
-    km: Optional[int] = Field(None, gt=0, lt=500 * 1000)
-    price: Optional[int] = Field(None, gt=0, lt=100 * 1000)
+    price: Optional[float] = None 
+    description: Optional[str] = None 
+    pros: Optional[List[str]] = None 
+    cons: Optional[List[str]] = None 
 
 class CarCollection(BaseModel):
     cars: List[Car]
