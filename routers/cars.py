@@ -101,11 +101,7 @@ async def create_car_with_picture(
     await car.insert(link_rule=WriteRules.WRITE)
     background_task.add_task(
         generate_ai_opinion,
-        id=str(car.id),
-        brand=brand,
-        make=str(make),
-        year=year,
-        picture_url=picture_url,
+        car_id=str(car.id)
     )
 
     return car
