@@ -3,11 +3,13 @@ import logging
 
 from beanie import PydanticObjectId
 from google import genai
+import resend 
 
 from config import BaseConfig
 from models.cars import Car
 
 settings = BaseConfig()
+resend.api_key = settings.RESEND_API_KEY 
 
 client = genai.Client(api_key=settings.GEMINI_API_KEY)
 
@@ -34,6 +36,7 @@ Requirements:
 - cons should sound mildly negative
 - return JSON only
 """
+
 
 async def generate_ai_opinion(car_id: str) -> None:
     try:
@@ -70,9 +73,34 @@ async def generate_ai_opinion(car_id: str) -> None:
 
         await car.save()
 
+        def generate_email():
+            pros_list = "<br>".join([f"- {pro}" for pro in car_info["pros"]])
+            cons_list = "<br>".join([f"- {con}" for con in car_info["cons"]])
+            return f"""
+                Hello,
+                We have a new car for you: {car.brand} {car.make} from {car.year}.
+                <p><img src="{car.picture_url}"/></p>{car_info['description']}
+                <h3>Pros</h3>
+                {pros_list}
+                <h3>Cons</h3>
+                {cons_list}
+                """
+
+        params: resend.Emails.SendParams = {
+            "from": "TheCars <onboarding@resend.dev>",
+            "to": ["phyttron6626@gmail.com"],
+            "subject": "New car on Sail!",
+            "html": generate_email()
+            }
+        
+        try: 
+            resend.Emails.send(params)
+        except Exception as e: 
+            print(e)
+
         logger.info(
             "Successfully generated AI opinion for %s",
-            car_id,
+            car_id, 
         )
 
     except Exception:
